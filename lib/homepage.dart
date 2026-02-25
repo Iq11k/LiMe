@@ -35,7 +35,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           AppBar(
             title: Text(
-              'I-nfo',
+              'LiMe',
               style: GoogleFonts.poppins(
                 fontSize: 30,
                 color: Colors.black,
@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
                 height: kToolbarHeight,
                 alignment: Alignment.center,
                 child: Text(
-                  'I-nfo',
+                  'LiMe',
                   style: GoogleFonts.poppins(
                     fontSize: 30,
                     color: Colors.black,
