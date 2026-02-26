@@ -4,6 +4,7 @@ import 'package:doku/widgets/glass_box.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../widgets/popup_menu.dart';
 
@@ -17,13 +18,29 @@ class Quran extends StatefulWidget {
 class _QuranState extends State<Quran> {
   int _currentSurahId = 1;
   final QuranApi _api = QuranApi();
+  final _audioPlayer = AudioPlayer();
   data.Quran? _currentData; // Cache data saat ini
   bool _isLoading = false;
+  int? _playingAyatIndex;
 
   @override
   void initState() {
     super.initState();
     _loadSurah(_currentSurahId);
+
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        setState(() {
+          _playingAyatIndex = null;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSurah(int id) async {
@@ -48,6 +65,31 @@ class _QuranState extends State<Quran> {
     }
   }
 
+  Future<void> _playAyat(String audioUrl, int ayatIndex) async {
+    try {
+      if (_playingAyatIndex == ayatIndex) {
+        if (_audioPlayer.playing) {
+          await _audioPlayer.pause();
+          setState(() => _playingAyatIndex = null);
+        } else {
+          await _audioPlayer.play();
+          setState(() => _playingAyatIndex = ayatIndex);
+        }
+      } else {
+        setState(() => _playingAyatIndex = ayatIndex);
+        await _audioPlayer.setUrl(audioUrl);
+        await _audioPlayer.play();
+      }
+    } catch (e) {
+      setState(() => _playingAyatIndex = null);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal memutar audio')));
+      }
+    }
+  }
+
   void _navigateToSurah(int surahId) {
     _currentSurahId = surahId;
     _loadSurah(surahId);
@@ -61,7 +103,6 @@ class _QuranState extends State<Quran> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(
           children: [
-            // Header dengan button - SELALU TERLIHAT
             Row(
               children: [
                 // Button prev
@@ -111,6 +152,7 @@ class _QuranState extends State<Quran> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          Text("${_currentData?.data.jumlahAyat} Ayat"),
                         ],
                       ),
                     ),
@@ -177,15 +219,41 @@ class _QuranState extends State<Quran> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  "${ayat.teksArab}\t(${ayat.nomorAyat})",
-                                  style: GoogleFonts.notoNaskhArabic(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFFC4F000),
-                                  ),
-                                  textAlign: TextAlign.right,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        _playingAyatIndex == ayat.nomorAyat
+                                            ? Icons.pause_circle
+                                            : Icons.play_circle,
+                                        size: 30,
+                                      ),
+                                      color: Color(0xFFC4F000),
+                                      onPressed: () {
+                                        _playAyat(
+                                          ayat.audio["06"] ??
+                                              ayat.audio.values.first,
+                                          ayat.nomorAyat,
+                                        );
+                                      },
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        "${ayat.teksArab}\t(${ayat.nomorAyat})",
+                                        style: GoogleFonts.notoNaskhArabic(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFFC4F000),
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+
                                 Text(
                                   ayat.teksLatin,
                                   style: GoogleFonts.poppins(
