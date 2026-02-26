@@ -21,17 +21,11 @@ class SholatApi {
       "tahun": tahun,
     });
 
-    print('=== API Request ===');
-    print('URL: $baseUrl');
-    print('Body: $body');
-
     var response = await client.post(
       uri,
       headers: {"Content-Type": "application/json"},
       body: body,
     );
-
-    print('Status code: ${response.statusCode}');
 
     if (response.statusCode == 200) {
       return sholatFromJson(const Utf8Decoder().convert(response.bodyBytes));
