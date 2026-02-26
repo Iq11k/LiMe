@@ -1,3 +1,4 @@
+import 'package:doku/widgets/provinsikota_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hijri/hijri_calendar.dart';
@@ -23,6 +24,18 @@ class _PrayerState extends State<Prayer> {
   int _currentMonth = DateTime.now().month;
   int _currentYear = DateTime.now().year;
 
+  String provinsi = 'D.I. Yogyakarta';
+  String kabKota = 'Kota Yogyakarta';
+
+  final Map<String, IconData> prayerIcons = {
+    'Imsak': Icons.nightlight_round,
+    'Subuh': Icons.wb_twilight_rounded,
+    'Dzuhur': Icons.wb_sunny_rounded,
+    'Ashar': Icons.sunny_snowing,
+    'Maghrib': Icons.wb_sunny_outlined,
+    'Isya': Icons.nights_stay_rounded,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +56,17 @@ class _PrayerState extends State<Prayer> {
         _hasMore) {
       _loadMoreData();
     }
+  }
+
+  void _resetAndReload() {
+    setState(() {
+      _jadwalList.clear();
+      _fetchedMonths.clear();
+      _hasMore = true;
+      _currentMonth = DateTime.now().month;
+      _currentYear = DateTime.now().year;
+    });
+    _loadMoreData();
   }
 
   Future<void> _loadMoreData() async {
@@ -77,8 +101,8 @@ class _PrayerState extends State<Prayer> {
       final api = SholatApi();
 
       final moreData = await api.getSholat(
-        provinsi: 'D.I. Yogyakarta',
-        kabkota: 'Kota Yogyakarta',
+        provinsi: provinsi,
+        kabkota: kabKota,
         bulan: fetchMonth,
         tahun: fetchYear,
       );
@@ -110,7 +134,7 @@ class _PrayerState extends State<Prayer> {
         j.tanggalLengkap.month,
         j.tanggalLengkap.day,
       );
-      return !d.isBefore(todayDate); // sama dengan atau setelah hari ini
+      return !d.isBefore(todayDate);
     });
 
     if (index > 0) {
@@ -140,47 +164,139 @@ class _PrayerState extends State<Prayer> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        child: _jadwalList.isEmpty && _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                controller: _scrollController,
-                itemCount: _jadwalList.length + (_hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= _jadwalList.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-
-                  final jadwal = _jadwalList[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: GlassBox(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+        child: Column(
+          children: [
+            // Header lokasi
+            GlassBox(
+              variant: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: Color(0xFFC4F000),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (jadwal.tanggal == DateTime.now().day)
-                              Row(
+                            Text(
+                              kabKota,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              provinsi,
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: const Color(0xFFC4F000),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        ProvinsiKotaPopup.show(
+                          context: context,
+                          onSelected: (prov, kab) {
+                            setState(() {
+                              provinsi = prov;
+                              kabKota = kab;
+                            });
+                            _resetAndReload();
+                          },
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.edit_location_alt_rounded,
+                        color: Color(0xFFC4F000),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // List jadwal
+            Expanded(
+              child: _jadwalList.isEmpty && _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC4F000),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _jadwalList.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index >= _jadwalList.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(
+                                color: Color(0xFFC4F000),
+                              ),
+                            ),
+                          );
+                        }
+
+                        final jadwal = _jadwalList[index];
+                        final isToday =
+                            formatDate(jadwal.tanggalLengkap) ==
+                            formatDate(DateTime.now());
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: GlassBox(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    convertToHijri(jadwal.tanggalLengkap),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Container(
+                                  // Tanggal header
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              convertToHijri(
+                                                jadwal.tanggalLengkap,
+                                              ),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(
+                                              formatDate(jadwal.tanggalLengkap),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w400,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isToday)
+                                        Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 10,
                                             vertical: 4,
@@ -204,57 +320,60 @@ class _PrayerState extends State<Prayer> {
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
+                                    ],
                                   ),
+
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 8),
+
+                                  // Jadwal sholat dengan icon
+                                  _buildPrayerTime('Imsak', jadwal.imsak),
+                                  _buildPrayerTime('Subuh', jadwal.subuh),
+                                  _buildPrayerTime('Dzuhur', jadwal.dzuhur),
+                                  _buildPrayerTime('Ashar', jadwal.ashar),
+                                  _buildPrayerTime('Maghrib', jadwal.maghrib),
+                                  _buildPrayerTime('Isya', jadwal.isya),
                                 ],
-                              )
-                            else
-                              Text(
-                                convertToHijri(jadwal.tanggalLengkap),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            Text(
-                              formatDate(jadwal.tanggalLengkap),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black,
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            _buildPrayerTime('Imsak', jadwal.imsak),
-                            _buildPrayerTime('Subuh', jadwal.subuh),
-                            _buildPrayerTime('Dzuhur', jadwal.dzuhur),
-                            _buildPrayerTime('Ashar', jadwal.ashar),
-                            _buildPrayerTime('Maghrib', jadwal.maghrib),
-                            _buildPrayerTime('Isya', jadwal.isya),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPrayerTime(String name, String time) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: GoogleFonts.poppins(fontSize: 14)),
+          Icon(
+            prayerIcons[name] ?? Icons.access_time_rounded,
+            color: const Color(0xFFC4F000),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
           Text(
             time,
             style: GoogleFonts.poppins(
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFC4F000),
             ),
           ),
         ],

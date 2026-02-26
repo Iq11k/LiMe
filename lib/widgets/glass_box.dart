@@ -11,6 +11,7 @@ class GlassBox extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.onDoubleTap,
+    this.variant = 1,
   });
 
   final double borderRadius;
@@ -20,6 +21,27 @@ class GlassBox extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
+  final int variant;
+
+  List<Color> get _gradientColors {
+    switch (variant) {
+      case 2:
+        return [Colors.black.withAlpha(140), Colors.black.withAlpha(90)];
+      case 1:
+      default:
+        return [Colors.white.withAlpha(160), Colors.white.withAlpha(100)];
+    }
+  }
+
+  Color get _borderColor {
+    switch (variant) {
+      case 2:
+        return Colors.white.withAlpha(40);
+      case 1:
+      default:
+        return Colors.white.withAlpha(100);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +61,10 @@ class GlassBox extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withAlpha(160),
-                    Colors.white.withAlpha(100),
-                  ],
+                  colors: _gradientColors,
                 ),
                 borderRadius: BorderRadius.circular(borderRadius),
-                border: Border.all(
-                  color: Colors.white.withAlpha(100),
-                  width: 2,
-                ),
+                border: Border.all(color: _borderColor, width: 2),
               ),
               child: child,
             ),
