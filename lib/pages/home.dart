@@ -2,6 +2,7 @@ import 'package:doku/data/model/sholat.dart';
 import 'package:doku/data/provider/sholat_api.dart';
 import 'package:doku/widgets/countdown.dart';
 import 'package:doku/widgets/glass_box.dart';
+import 'package:doku/widgets/provinsikota_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
@@ -18,6 +19,9 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final date = DateTime.now();
+  String provinsi = 'D.I. Yogyakarta';
+  String kabKota = 'Kota Yogyakarta';
+
   late final day = DateFormat('dd', 'id_ID').format(date);
   late final month = DateFormat('MMMM', 'id_ID').format(date);
   late final year = DateFormat('yyyy', 'id_ID').format(date);
@@ -29,10 +33,7 @@ class _HomeState extends State<Home> {
 
   Future<Sholat?> _getImsakiyah() async {
     final api = SholatApi();
-    return await api.getSholat(
-      provinsi: 'D.I. Yogyakarta',
-      kabkota: 'Kota Yogyakarta',
-    );
+    return await api.getSholat(provinsi: provinsi, kabkota: kabKota);
   }
 
   Future<Jadwal?> _getJadwalBesok() async {
@@ -82,6 +83,20 @@ class _HomeState extends State<Home> {
     return ['Imsak', jadwalBesok?.imsak ?? jadwal.imsak];
   }
 
+  Future<Sholat?>? _sholatFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sholatFuture = _getImsakiyah();
+  }
+
+  void _refreshSholat() {
+    setState(() {
+      _sholatFuture = _getImsakiyah();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,12 +117,14 @@ class _HomeState extends State<Home> {
                         width: double.infinity,
                         height: double.infinity,
                         child: FutureBuilder<Sholat?>(
-                          future: _getImsakiyah(),
+                          future: _sholatFuture,
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Center(
-                                child: CircularProgressIndicator(),
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFC4F000),
+                                ),
                               );
                             }
 
@@ -141,7 +158,9 @@ class _HomeState extends State<Home> {
                                 if (asyncSnapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return const Center(
-                                    child: CircularProgressIndicator(),
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFFC4F000),
+                                    ),
                                   );
                                 }
 
@@ -304,7 +323,155 @@ class _HomeState extends State<Home> {
             flex: 5,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-              child: GlassBox(),
+              child: GlassBox(
+                child: FutureBuilder<Sholat?>(
+                  future: _sholatFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFC4F000),
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data == null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Gagal memuat jadwal sholat',
+                              style: GoogleFonts.poppins(color: Colors.white54),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _refreshSholat,
+                              icon: const Icon(
+                                Icons.refresh,
+                                color: Color(0xFFC4F000),
+                              ),
+                              label: Text(
+                                'Coba Lagi',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFC4F000),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final jadwalHariIni = snapshot.data!.data.jadwal.firstWhere(
+                      (jadwal) => jadwal.tanggal == DateTime.now().day,
+                    );
+
+                    final prayers = {
+                      'Imsak': jadwalHariIni.imsak,
+                      'Subuh': jadwalHariIni.subuh,
+                      'Dzuhur': jadwalHariIni.dzuhur,
+                      'Ashar': jadwalHariIni.ashar,
+                      'Maghrib': jadwalHariIni.maghrib,
+                      'Isya': jadwalHariIni.isya,
+                    };
+
+                    final prayerIcons = {
+                      'Imsak': Icons.nightlight_round,
+                      'Subuh': Icons.wb_twilight_rounded,
+                      'Dzuhur': Icons.wb_sunny_rounded,
+                      'Ashar': Icons.sunny_snowing,
+                      'Maghrib': Icons.wb_sunny_outlined,
+                      'Isya': Icons.nights_stay_rounded,
+                    };
+
+                    return Column(
+                      children: [
+                        // Header lokasi
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    kabKota,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    provinsi,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: const Color(0xFFC4F000),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  ProvinsiKotaPopup.show(
+                                    context: context,
+                                    onSelected: (prov, kab) {
+                                      setState(() {
+                                        provinsi = prov;
+                                        kabKota = kab;
+                                      });
+                                      _refreshSholat();
+                                    },
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.edit_location_alt_rounded,
+                                  color: Color(0xFFC4F000),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        // List jadwal sholat
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            children: prayers.entries.map((entry) {
+                              return ListTile(
+                                leading: Icon(
+                                  prayerIcons[entry.key] ??
+                                      Icons.access_time_rounded,
+                                  color: const Color(0xFFC4F000),
+                                ),
+                                title: Text(
+                                  entry.key,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  entry.value,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFC4F000),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ],
