@@ -1,6 +1,5 @@
 import 'package:doku/widgets/glass_box.dart';
 import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 
