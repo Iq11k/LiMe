@@ -15,14 +15,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _index = 0;
+  final GlobalKey<HomeState> _homeKey = GlobalKey<HomeState>();
+  final GlobalKey<PrayerState> _prayerKey = GlobalKey<PrayerState>();
 
   void _navigate(int index) {
     setState(() => _index = index);
+    if (index == 0) _homeKey.currentState?.loadLocation();
+    if (index == 1) _prayerKey.currentState?.loadLocation();
   }
 
-  final List<Widget> _pages = [
-    Home(),
-    const Prayer(),
+  late final List<Widget> _pages = [
+    Home(key: _homeKey),
+    Prayer(key: _prayerKey),
     const Counter(),
     const Quran(),
   ];

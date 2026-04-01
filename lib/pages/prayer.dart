@@ -1,3 +1,4 @@
+import 'package:doku/data/provider/location_prefs.dart';
 import 'package:doku/widgets/provinsikota_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,10 +13,10 @@ class Prayer extends StatefulWidget {
   const Prayer({super.key});
 
   @override
-  State<Prayer> createState() => _PrayerState();
+  State<Prayer> createState() => PrayerState();
 }
 
-class _PrayerState extends State<Prayer> {
+class PrayerState extends State<Prayer> {
   final ScrollController _scrollController = ScrollController();
   final List<Jadwal> _jadwalList = [];
   final Set<String> _fetchedMonths = {};
@@ -24,8 +25,8 @@ class _PrayerState extends State<Prayer> {
   int _currentMonth = DateTime.now().month;
   int _currentYear = DateTime.now().year;
 
-  String provinsi = 'D.I. Yogyakarta';
-  String kabKota = 'Kota Yogyakarta';
+  String provinsi = LocationPrefs.defaultProvinsi;
+  String kabKota = LocationPrefs.defaultKabKota;
 
   final Map<String, IconData> prayerIcons = {
     'Imsak': Icons.nightlight_round,
@@ -39,14 +40,28 @@ class _PrayerState extends State<Prayer> {
   @override
   void initState() {
     super.initState();
-    _loadMoreData();
     _scrollController.addListener(_onScroll);
+    _loadLocationThenData();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLocationThenData() async {
+    final saved = await LocationPrefs.load();
+    provinsi = saved['provinsi']!;
+    kabKota = saved['kabKota']!;
+    setState(() {
+      _jadwalList.clear();
+      _fetchedMonths.clear();
+      _hasMore = true;
+      _currentMonth = DateTime.now().month;
+      _currentYear = DateTime.now().year;
+    });
+    _loadMoreData();
   }
 
   void _onScroll() {
@@ -206,22 +221,38 @@ class _PrayerState extends State<Prayer> {
                         ),
                       ],
                     ),
-                    IconButton(
-                      onPressed: () {
-                        ProvinsiKotaPopup.show(
-                          context: context,
-                          onSelected: (prov, kab) {
-                            setState(() {
-                              provinsi = prov;
-                              kabKota = kab;
-                            });
-                            _resetAndReload();
-                          },
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.edit_location_alt_rounded,
-                        color: Color(0xFFC4F000),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFC4F000).withOpacity(0.3),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          ProvinsiKotaPopup.show(
+                            context: context,
+                            onSelected: (prov, kab) async {
+                              await LocationPrefs.save(
+                                provinsi: prov,
+                                kabKota: kab,
+                              );
+                              setState(() {
+                                provinsi = prov;
+                                kabKota = kab;
+                              });
+                              _resetAndReload();
+                            },
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.edit_location_alt_rounded,
+                          color: Color(0xFFC4F000),
+                        ),
                       ),
                     ),
                   ],
@@ -379,5 +410,9 @@ class _PrayerState extends State<Prayer> {
         ],
       ),
     );
+  }
+
+  void loadLocation() {
+    _loadLocationThenData();
   }
 }

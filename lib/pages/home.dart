@@ -1,4 +1,5 @@
 import 'package:doku/data/model/sholat.dart';
+import 'package:doku/data/provider/location_prefs.dart';
 import 'package:doku/data/provider/sholat_api.dart';
 import 'package:doku/widgets/countdown.dart';
 import 'package:doku/widgets/glass_box.dart';
@@ -14,13 +15,13 @@ class Home extends StatefulWidget {
   const Home({super.key});
 
   @override
-  State<Home> createState() => _HomeState();
+  State<Home> createState() => HomeState();
 }
 
-class _HomeState extends State<Home> {
+class HomeState extends State<Home> {
   final date = DateTime.now();
-  String provinsi = 'D.I. Yogyakarta';
-  String kabKota = 'Kota Yogyakarta';
+  String provinsi = LocationPrefs.defaultProvinsi;
+  String kabKota = LocationPrefs.defaultKabKota;
 
   late final day = DateFormat('dd', 'id_ID').format(date);
   late final month = DateFormat('MMMM', 'id_ID').format(date);
@@ -31,6 +32,23 @@ class _HomeState extends State<Home> {
   late final hijriMonth = hijriDate.longMonthName;
   late final hijriYear = hijriDate.hYear.toString();
 
+  Future<Sholat?>? _sholatFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocationThenData();
+  }
+
+  Future<void> _loadLocationThenData() async {
+    final saved = await LocationPrefs.load();
+    provinsi = saved['provinsi']!;
+    kabKota = saved['kabKota']!;
+    setState(() {
+      _sholatFuture = _getImsakiyah();
+    });
+  }
+
   Future<Sholat?> _getImsakiyah() async {
     final api = SholatApi();
     return await api.getSholat(provinsi: provinsi, kabkota: kabKota);
@@ -38,7 +56,7 @@ class _HomeState extends State<Home> {
 
   Future<Jadwal?> _getJadwalBesok() async {
     try {
-      final sholat = await _getImsakiyah();
+      final sholat = await _sholatFuture;
       if (sholat == null) return null;
 
       final besok = DateTime.now().add(const Duration(days: 1));
@@ -83,18 +101,16 @@ class _HomeState extends State<Home> {
     return ['Imsak', jadwalBesok?.imsak ?? jadwal.imsak];
   }
 
-  Future<Sholat?>? _sholatFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _sholatFuture = _getImsakiyah();
-  }
-
   void _refreshSholat() {
     setState(() {
       _sholatFuture = _getImsakiyah();
     });
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _loadLocationThenData();
   }
 
   @override
@@ -393,23 +409,34 @@ class _HomeState extends State<Home> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Row(
                                 children: [
-                                  Text(
-                                    kabKota,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    color: Color(0xFFC4F000),
+                                    size: 20,
                                   ),
-                                  Text(
-                                    provinsi,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: const Color(0xFFC4F000),
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        kabKota,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      Text(
+                                        provinsi,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 11,
+                                          color: const Color(0xFFC4F000),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -417,7 +444,11 @@ class _HomeState extends State<Home> {
                                 onPressed: () {
                                   ProvinsiKotaPopup.show(
                                     context: context,
-                                    onSelected: (prov, kab) {
+                                    onSelected: (prov, kab) async {
+                                      await LocationPrefs.save(
+                                        provinsi: prov,
+                                        kabKota: kab,
+                                      );
                                       setState(() {
                                         provinsi = prov;
                                         kabKota = kab;
@@ -477,5 +508,9 @@ class _HomeState extends State<Home> {
         ],
       ),
     );
+  }
+
+  void loadLocation() {
+    _loadLocationThenData();
   }
 }
