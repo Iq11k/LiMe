@@ -45,10 +45,12 @@ Jika Anda ingin menjalankan atau memodifikasi aplikasi ini di lingkungan pengemb
 ---
 
 ## 📱 Tangkapan Layar (Screenshots)
-![Home Screen](screenshots/Screenshot_20260402_153623.png)
-![Prayer list Feature](screenshots/Screenshot_20260402_153705.png)
-![Counter Feature](screenshots/Screenshot_20260402_153738.png)
-![Quran Feature](screenshots/Screenshot_20260402_153745.png)
+<p align="center">
+  <img src="screenshots/Screenshot_20260402_153623.png" alt="Beranda LIME" width="180"/>
+  <img src="screenshots/Screenshot_20260402_153705.png" alt="Fitur Jadwal Sholat" width="180"/>
+  <img src="screenshots/Screenshot_20260402_153738.png" alt="Fitur Tasbih" width="180"/>
+  <img src="screenshots/Screenshot_20260402_153745.png" alt="Fitur Quran" width="180"/>
+</p>
 
 ## 👨‍💻 Pengembang
 Moch Rizqi Ardi Saputra Bambang 
