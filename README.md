@@ -20,6 +20,13 @@ Aplikasi ini dilengkapi dengan 4 fitur utama untuk menunjang kebutuhan ibadah:
 
 ---
 
+## 🔌 Sumber Data & API (API Reference)
+
+Aplikasi LIME menggunakan layanan API dari pihak ketiga untuk menyediakan data yang lengkap dan akurat:
+* **[EQuran.id](https://equran.id/)** - Digunakan sebagai sumber data utama untuk mengambil teks ayat-ayat suci Al-Quran, terjemahan, serta file audio (murattal). Kami mengucapkan terima kasih kepada developer EQuran.id atas layanan API luar biasa yang mereka sediakan.
+
+---
+
 ## 🚀 Cara Unduh & Instalasi (Untuk Pengguna)
 
 Aplikasi LIME sudah dapat diunduh dan langsung diinstal di *smartphone* Android Anda.
